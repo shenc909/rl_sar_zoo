@@ -65,12 +65,16 @@ Stephen Brawner (brawner@gmail.com)
       <mass value="0.001" />
       <inertia ixx="9.6e-06" ixy="0" ixz="0" iyy="9.6e-06" iyz="0" izz="9.6e-06" />
     </inertial>
+    <!-- Collision sphere commented out, it enclosed the radar lidar mount, so the CPU ray bev_lidar
+         would stop every ray on it. Removing it frees the sensor. The head no longer self-collides. -->
+    <!--
     <collision>
       <origin xyz="0 0 0" rpy="0 0 0" />
       <geometry>
         <sphere radius="0.047" />
       </geometry>
     </collision>
+    -->
   </link>
   <joint name="Head_lower_joint" type="fixed" dont_collapse="true">
     <origin xyz="0.008 0 -0.07" rpy="0 0 0" />
@@ -670,7 +674,7 @@ Stephen Brawner (brawner@gmail.com)
       <inertia ixx="0" ixy="0" ixz="0" iyy="0" iyz="0" izz="0" />
     </inertial>
   </link>
-  <joint name="radar_joint" type="fixed">
+  <joint name="radar_joint" type="fixed" dont_collapse="true">
     <origin xyz="0.28945 0 -0.046825" rpy="0 2.8782 0" />
     <parent link="trunk" />
     <child link="radar" />

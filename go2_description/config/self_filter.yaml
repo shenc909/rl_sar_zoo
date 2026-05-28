@@ -1,0 +1,66 @@
+# robot_self_filter config for the Go2 BEV lidar (mounted on the radar / L1 link).
+# Removes points that hit the robot's own body from /lidar/points before rl_sim rasterizes the BEV.
+# Node name is "self_filter" (set in the launch), so that must be the top-level key.
+self_filter:
+  ros__parameters:
+    # Empty on purpose. A non-empty sensor_frame switches the filter to maskIntersection, which also
+    # removes SHADOW points (anything whose ray back to the sensor passes through a body shape). The
+    # lidar is mounted ON the robot (radar link), so the trunk/leg shapes sit right at the sensor and
+    # shadow the entire ground plane, deleting every return. Empty -> maskContainment, which removes
+    # only points physically inside the body shapes (legs/trunk/head) and keeps the terrain.
+    sensor_frame: ""
+
+    # Unused while sensor_frame is empty (no sensor origin -> no ray/shadow test), kept for reference.
+    min_sensor_dist: 0.05
+
+    keep_organized: false
+    zero_for_removed_points: false
+    invert: false
+
+    # Shape scale/padding defaults (slightly padded so leg surfaces are fully removed).
+    default_sphere_scale: 1.0
+    default_sphere_padding: 0.03
+    default_box_scale: [1.0, 1.0, 1.0]
+    default_box_padding: [0.03, 0.03, 0.03]
+    default_cylinder_scale: [1.0, 1.0]
+    default_cylinder_padding: [0.03, 0.03]
+
+    self_see_links:
+      names:
+        - trunk
+        - Head_upper
+        # Head_lower removed: its collision is commented out in the URDF (it enclosed the lidar), so
+        # there is no shape to filter and no ray ever hits it.
+        - FL_hip
+        - FL_thigh
+        - FL_calf
+        - FL_calflower
+        - FL_calflower1
+        - FL_foot
+        - FR_hip
+        - FR_thigh
+        - FR_calf
+        - FR_calflower
+        - FR_calflower1
+        - FR_foot
+        - RL_hip
+        - RL_thigh
+        - RL_calf
+        - RL_calflower
+        - RL_calflower1
+        - RL_foot
+        - RR_hip
+        - RR_thigh
+        - RR_calf
+        - RR_calflower
+        - RR_calflower1
+        - RR_foot
+
+      # Per-link override for the trunk. Its collision is a tight box (0.3762 x 0.0935 x 0.114) that
+      # stops short of the rounded body-shell / hip fairing at the front corners, so the lidar's hits
+      # there (base x~0.22, |y|~0.06, z~0) leak through. Pad the box out to swallow them. NOTE: the box
+      # branch only engages when BOTH box_scale (size 3) and box_padding (size 3) are set — supplying
+      # box_padding alone silently falls back to uniform sphere padding and does nothing.
+      trunk:
+        box_scale: [1.0, 1.0, 1.0]
+        box_padding: [0.06, 0.045, 0.02]

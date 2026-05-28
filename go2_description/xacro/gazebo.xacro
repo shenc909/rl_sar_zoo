@@ -249,6 +249,102 @@
         </plugin>
     </gazebo>
 
+    <!-- Forward depth camera for perception policies (e.g. go2/position_rough).
+         Rigidly fixed to the base at the training offset (0.30, 0, 0.10), looking
+         straight ahead (+X). Rendered OVERSIZED on purpose - the trained policy
+         uses a 24x16 image with non-square pixels (fx!=fy, h-FoV 87, v-FoV 58),
+         which Gazebo's single-FoV camera cannot reproduce. rl_sim resamples this
+         image into the IsaacLab pixel grid via an angular remap, so here we only
+         need FoV/resolution that comfortably cover 87x58 deg. -->
+    <link name="camera_link">
+        <inertial>
+            <mass value="1e-3"/>
+            <origin xyz="0 0 0"/>
+            <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+        </inertial>
+    </link>
+    <joint name="camera_joint" type="fixed">
+        <parent link="base"/>
+        <child link="camera_link"/>
+        <origin xyz="0.30 0 0.10" rpy="0 0 0"/>
+    </joint>
+
+    <gazebo reference="camera_link">
+        <sensor name="depth_camera" type="depth">
+            <update_rate>30</update_rate>
+            <always_on>true</always_on>
+            <camera name="depth_camera">
+                <horizontal_fov>1.5708</horizontal_fov> <!-- 90 deg, covers training 87 deg -->
+                <image>
+                    <width>96</width>
+                    <height>64</height>
+                    <format>R8G8B8</format>
+                </image>
+                <clip>
+                    <near>0.05</near>
+                    <far>6.0</far>
+                </clip>
+            </camera>
+            <plugin name="depth_camera_controller" filename="libgazebo_ros_camera.so">
+                <ros>
+                    <namespace>/camera</namespace>
+                </ros>
+                <camera_name>front</camera_name>
+                <frame_name>camera_link</frame_name>
+                <min_depth>0.05</min_depth>
+                <max_depth>6.0</max_depth>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+    <!-- BEV lidar matching the trained sensor FOV (Isaac HesaiJT128, which models the Go2 L1) at the
+         real L1 mount (the existing radar link). The policy trained on channel_range 29..127, whose in-space
+         elevations span 18.62 to 88.99 deg (a 360 deg horizontal by ~70 deg vertical band aimed up the sensor,
+         which the near-inverted radar mount turns into a down-and-forward sweep reaching past nadir).
+         This is a CPU "ray" sensor, NOT gpu_ray, because gpu_ray renders through a perspective camera whose
+         vertical FOV is 2 * max(abs angle) and segfaults once that nears 180 deg, so it cannot reach the
+         steep elevations this band needs. CPU ray has no such cap and reproduces the full 18.62 to 88.99 deg.
+         Trade-off of CPU ray, it intersects COLLISION geometry (not visuals), so the Head_lower collision
+         sphere that enclosed the sensor is commented out in the URDF (else every ray would stop on it); the
+         trunk box still occludes the under-body, which is realistic and robot_self_filter cleans the rest.
+         Range is 3 m because the BEV only uses points within the 0.8 m grid. -->
+    <gazebo reference="radar">
+        <sensor name="bev_lidar" type="ray">
+            <always_on>true</always_on>
+            <update_rate>10</update_rate>
+            <visualize>false</visualize>
+            <ray>
+                <scan>
+                    <horizontal>
+                        <samples>120</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-3.14159265</min_angle>
+                        <max_angle>3.14159265</max_angle>
+                    </horizontal>
+                    <vertical>
+                        <samples>40</samples>
+                        <resolution>1</resolution>
+                        <min_angle>0.325</min_angle>
+                        <max_angle>1.5532</max_angle>
+                    </vertical>
+                </scan>
+                <range>
+                    <min>0.05</min>
+                    <max>3.0</max>
+                    <resolution>0.01</resolution>
+                </range>
+            </ray>
+            <plugin name="bev_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
+                <ros>
+                    <namespace>/</namespace>
+                    <remapping>~/out:=/lidar/points</remapping>
+                </ros>
+                <output_type>sensor_msgs/PointCloud2</output_type>
+                <frame_name>radar</frame_name>
+            </plugin>
+        </sensor>
+    </gazebo>
+
     </xacro:if>
 
     <gazebo reference="base">
