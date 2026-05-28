@@ -64,3 +64,20 @@ self_filter:
       trunk:
         box_scale: [1.0, 1.0, 1.0]
         box_padding: [0.06, 0.045, 0.02]
+
+      # Calf cylinders in the URDF are very skinny (radius 0.012, length 0.12) compared to the real
+      # shell, so points 1-2cm off the leg leak through with default padding. Bump radial padding to
+      # 0.05 (effective radius ~6.2cm). Cylinder override only engages when BOTH cylinder_scale and
+      # cylinder_padding are set (size 2 each: [radius, length]).
+      FL_calf:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.03]
+      FR_calf:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.03]
+      RL_calf:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.03]
+      RR_calf:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.03]
