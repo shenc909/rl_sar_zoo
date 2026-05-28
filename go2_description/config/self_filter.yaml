@@ -81,3 +81,32 @@ self_filter:
       RR_calf:
         cylinder_scale: [1.0, 1.0]
         cylinder_padding: [0.05, 0.03]
+
+      # calflower / calflower1 are the lower-shin sub-cylinders just above the foot
+      # (radius 0.011 / 0.0155). They live right at the bottom of the calf and any
+      # leak "near the calf" is almost certainly here, not on the calf cylinder
+      # itself. Same radial pad as the calves.
+      FL_calflower:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.02]
+      FR_calflower:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.02]
+      RL_calflower:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.02]
+      RR_calflower:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.02]
+      FL_calflower1:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.015]
+      FR_calflower1:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.015]
+      RL_calflower1:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.015]
+      RR_calflower1:
+        cylinder_scale: [1.0, 1.0]
+        cylinder_padding: [0.05, 0.015]
