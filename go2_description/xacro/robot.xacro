@@ -2,7 +2,14 @@
 
 <robot name="go2_description" xmlns:xacro="http://www.ros.org/wiki/xacro">
 
+    <xacro:arg name="nav_sensors" default="false"/>
+
     <xacro:include filename="$(find go2_description)/urdf/go2_description.urdf"/>
     <xacro:include filename="$(find go2_description)/xacro/gazebo.xacro"/>
+
+    <!-- MID360 + ground-truth odometry for Nav2 (go2_nav2_sim) -->
+    <xacro:if value="$(arg nav_sensors)">
+        <xacro:include filename="$(find go2_description)/xacro/nav_sensors.xacro"/>
+    </xacro:if>
 
 </robot>

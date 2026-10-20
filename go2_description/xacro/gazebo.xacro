@@ -297,13 +297,13 @@
         </sensor>
     </gazebo>
 
-    <!-- BEV lidar matching the trained sensor FOV (Isaac HesaiJT128, which models the Go2 L1) at the
-         real L1 mount (the existing radar link). The policy trained on channel_range 29..127, whose in-space
-         elevations span 18.62 to 88.99 deg (a 360 deg horizontal by ~70 deg vertical band aimed up the sensor,
-         which the near-inverted radar mount turns into a down-and-forward sweep reaching past nadir).
+    <!-- BEV lidar at the real L1 mount (the existing radar link). Approximates the Go2 L1 (Isaac
+         HesaiJT128) but expanded to the full 90 deg vertical band (0..pi/2 = 0..90 deg) instead of the
+         trained channel_range 29..127 sub-band (18.62..88.99 deg). The near-inverted radar mount turns
+         this into a down-and-forward sweep reaching past nadir.
          This is a CPU "ray" sensor, NOT gpu_ray, because gpu_ray renders through a perspective camera whose
          vertical FOV is 2 * max(abs angle) and segfaults once that nears 180 deg, so it cannot reach the
-         steep elevations this band needs. CPU ray has no such cap and reproduces the full 18.62 to 88.99 deg.
+         steep elevations this band needs. CPU ray has no such cap.
          Trade-off of CPU ray, it intersects COLLISION geometry (not visuals), so the Head_lower collision
          sphere that enclosed the sensor is commented out in the URDF (else every ray would stop on it); the
          trunk box still occludes the under-body, which is realistic and robot_self_filter cleans the rest.
@@ -322,10 +322,10 @@
                         <max_angle>3.14159265</max_angle>
                     </horizontal>
                     <vertical>
-                        <samples>40</samples>
+                        <samples>52</samples>
                         <resolution>1</resolution>
-                        <min_angle>0.325</min_angle>
-                        <max_angle>1.5532</max_angle>
+                        <min_angle>0.0</min_angle>
+                        <max_angle>1.57079633</max_angle>
                     </vertical>
                 </scan>
                 <range>
@@ -346,6 +346,24 @@
     </gazebo>
 
     </xacro:if>
+
+    <!-- 3 kg payload rigidly attached to the trunk. Placed at the trunk's existing CoM
+         (0.021112, 0, -0.005366) so the combined CoM stays put; only mass and inertia change.
+         Inertia is modelled as a 15x15x10 cm box (battery-pack shape) about its own CoM. -->
+    <link name="payload">
+        <inertial>
+            <mass value="3.0"/>
+            <origin xyz="0 0 0" rpy="0 0 0"/>
+            <inertia ixx="0.008125" ixy="0" ixz="0"
+                     iyy="0.008125" iyz="0"
+                     izz="0.01125"/>
+        </inertial>
+    </link>
+    <joint name="payload_joint" type="fixed">
+        <parent link="trunk"/>
+        <child link="payload"/>
+        <origin xyz="0.021112 0 -0.005366" rpy="0 0 0"/>
+    </joint>
 
     <gazebo reference="base">
         <turnGravityOff>false</turnGravityOff>

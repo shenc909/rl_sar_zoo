@@ -1,0 +1,86 @@
+<?xml version="1.0"?>
+<!-- Navigation sensors for the Gazebo sim (ROS 2 only), included by robot.xacro with nav_sensors:=true.
+     Consumed by go2_nav2_sim in ril_deploy_ws (Nav2 + slam_toolbox, which may run on another distro).
+
+     - MID360 lidar at the real robot's livox_frame pose -> /livox/lidar (PointCloud2, livox_frame)
+     - Ground-truth pose of `base` from Gazebo -> /ground_truth/odom (nav_msgs/Odometry, world frame)
+
+     Comments inside <robot> end up in robot_description, which gazebo_ros2_control passes as a
+     `robot_description:=...` rcl argument that is parsed as YAML. Never put a colon followed by a space in
+     them, or the controller manager fails to start ("Couldn't parse parameter override rule"). -->
+<robot xmlns:xacro="http://www.ros.org/wiki/xacro">
+
+    <!-- Mount is the inverse of go2_bringup's calibrated lidar_frame_to_base_link
+         (translation [-0.242, 0, -0.182], rpy [0, -17.2, 0] deg), i.e. 17.2 deg nose-down on the head. -->
+    <link name="livox_frame">
+        <inertial>
+            <mass value="1e-3"/>
+            <origin xyz="0 0 0"/>
+            <inertia ixx="1e-6" ixy="0" ixz="0" iyy="1e-6" iyz="0" izz="1e-6"/>
+        </inertial>
+    </link>
+    <joint name="livox_joint" type="fixed">
+        <parent link="base"/>
+        <child link="livox_frame"/>
+        <origin xyz="0.285 0 0.102" rpy="0 0.3002 0"/>
+    </joint>
+
+    <!-- Mirrors the real MID360 as configured by livox_ros_driver2 (msg_MID360_launch.py), 360 x (-7..52) deg FoV,
+         40 lines, ~200k pts/s published at publish_freq 20 Hz (~10k pts/msg), 0.1-40 m. The real non-repetitive
+         scan pattern is approximated by a uniform 250 x 40 grid. CPU ray sensor, it intersects collision geometry
+         and needs no GPU. The real driver publishes CustomMsg (xfer_format 1) for Point-LIO; this publishes the
+         PointCloud2 variant on the topic the driver uses for xfer_format 0.
+         Sim cost (measured 2026-10-15, robot standing under rl_sim) is real-time factor 0.91 without nav sensors,
+         0.74 with this sensor at 20 Hz, 0.81 at update_rate 10 (the MID360 native frame rate). -->
+    <gazebo reference="livox_frame">
+        <sensor name="nav_lidar" type="ray">
+            <always_on>true</always_on>
+            <update_rate>20</update_rate>
+            <visualize>false</visualize>
+            <ray>
+                <scan>
+                    <horizontal>
+                        <samples>250</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-3.14159265</min_angle>
+                        <max_angle>3.14159265</max_angle>
+                    </horizontal>
+                    <vertical>
+                        <samples>40</samples>
+                        <resolution>1</resolution>
+                        <min_angle>-0.12217305</min_angle>
+                        <max_angle>0.90757121</max_angle>
+                    </vertical>
+                </scan>
+                <range>
+                    <min>0.1</min>
+                    <max>40.0</max>
+                    <resolution>0.01</resolution>
+                </range>
+            </ray>
+            <plugin name="nav_lidar_controller" filename="libgazebo_ros_ray_sensor.so">
+                <ros>
+                    <namespace>/</namespace>
+                    <remapping>~/out:=/livox/lidar</remapping>
+                </ros>
+                <output_type>sensor_msgs/PointCloud2</output_type>
+                <frame_name>livox_frame</frame_name>
+            </plugin>
+        </sensor>
+    </gazebo>
+
+    <!-- base is the model's root link (trunk is lumped into it). Twist is expressed in the world frame. -->
+    <gazebo>
+        <plugin name="ground_truth_odom" filename="libgazebo_ros_p3d.so">
+            <ros>
+                <namespace>/</namespace>
+                <remapping>odom:=ground_truth/odom</remapping>
+            </ros>
+            <body_name>base</body_name>
+            <frame_name>world</frame_name>
+            <update_rate>100</update_rate>
+            <gaussian_noise>0.0</gaussian_noise>
+        </plugin>
+    </gazebo>
+
+</robot>
